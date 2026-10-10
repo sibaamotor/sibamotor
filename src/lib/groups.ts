@@ -258,3 +258,50 @@ export const groupUnreadCounts = createServerFn({ method: "GET" })
     for (const row of rows) out[row.group_id] = row.n;
     return out;
   });
+
+/** Remove a member from a group. Any current member can remove others; cannot remove the last member. */
+export const removeGroupMember = createServerFn({ method: "POST" })
+  .validator((data: { by: string; groupId: string; username: string }) => data)
+  .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const by = data.by.trim().toLowerCase();
+    const target = data.username.trim().toLowerCase();
+    if (!target) return { ok: false, error: "کاربر نامعتبر است." };
+    const sql = await getSql();
+    const member = await sql<{ username: string }>`
+      select username from app_group_members where group_id = ${data.groupId} and username = ${by}
+    `;
+    if (member.length === 0) return { ok: false, error: "شما عضو این گروه نیستید." };
+    const count = await sql<{ n: number }>`
+      select count(*)::int as n from app_group_members where group_id = ${data.groupId}
+    `;
+    if ((count[0]?.n ?? 0) <= 1) {
+      return { ok: false, error: "نمی‌توان آخرین عضو گروه را حذف کرد." };
+    }
+    await sql`
+      delete from app_group_members where group_id = ${data.groupId} and username = ${target}
+    `;
+    await sql`
+      delete from app_group_reads where group_id = ${data.groupId} and username = ${target}
+    `;
+    return { ok: true as const };
+  });
+
+/** Soft-clear all messages in a group (marks them deleted). Any member can do this. */
+export const clearGroupMessages = createServerFn({ method: "POST" })
+  .validator((data: { by: string; groupId: string }) => data)
+  .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string }> => {
+    const by = data.by.trim().toLowerCase();
+    if (!by) return { ok: false, error: "کاربر نامعتبر است." };
+    const sql = await getSql();
+    const member = await sql<{ username: string }>`
+      select username from app_group_members where group_id = ${data.groupId} and username = ${by}
+    `;
+    if (member.length === 0) return { ok: false, error: "شما عضو این گروه نیستید." };
+    const now = new Date().toISOString();
+    await sql`
+      update app_group_messages
+      set deleted_at = ${now}
+      where group_id = ${data.groupId} and deleted_at is null
+    `;
+    return { ok: true as const };
+  });
