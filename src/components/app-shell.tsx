@@ -132,7 +132,7 @@ export function AppShell({ boards, boardId, search, onSearch, onCreateBoard, chi
     }[] = [
       { to: bid ? `/b/${bid}` : "/", icon: LayoutGrid, label: "تخته", match: (p: string) => p.startsWith("/b/") && !p.includes("/gantt") && !p.includes("/report") },
       { to: bid ? `/b/${bid}/gantt` : "/", icon: GanttChart, label: "گانت", match: (p: string) => p.includes("/gantt") },
-      { to: bid ? `/b/${bid}/report` : "/", icon: BarChart3, label: "داشبورد تحلیلی", match: (p: string) => p.includes("/report") && !p.includes("reports-inbox") },
+      { to: bid ? `/b/${bid}/report` : "/", icon: BarChart3, label: "داشبورد", match: (p: string) => p.includes("/report") && !p.includes("reports-inbox") },
       { to: "/reports-inbox", icon: FileText, label: "گزارش", match: (p: string) => p.startsWith("/reports-inbox"), badge: reportUnread || undefined },
       { to: "/my", icon: ListTodo, label: "کارهای من", match: (p: string) => p.startsWith("/my") },
       { to: "/messages", icon: MessageSquare, label: "پیام‌ها", match: (p: string) => p.startsWith("/messages"), badge: unread },
